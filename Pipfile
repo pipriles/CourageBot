@@ -1,0 +1,6 @@
+[packages]
+discord.py = "*"
+
+[requires]
+python_version = "3.6"
+
