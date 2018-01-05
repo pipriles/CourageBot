@@ -9,7 +9,6 @@ import os
 # Restore old state with pickle
 # Check for user has permission to set role points
 
-# TOKEN = 'Mzk2ODY4MDcyMTM4NDczNDgy.DSn-Fg.FVeH3CbYBKqJcX-O42gL9kWhyUY'
 TOKEN = os.environ.get('TOKEN', None)
 
 def calc_remaining(created_at, *args, **kwargs):
