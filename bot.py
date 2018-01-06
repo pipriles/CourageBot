@@ -1,125 +1,18 @@
 #!/usr/bin/env python3.6
 import discord
 import asyncio
-import datetime as dt
-import random
 import re
 import os
+
+# For MongoDB
+import pymongo as pm
+
+import utils
 
 # Restore old state with pickle
 # Check for user has permission to set role points
 
 TOKEN = os.environ.get('TOKEN', None)
-
-def calc_remaining(created_at, *args, **kwargs):
-    delta = dt.timedelta(*args, **kwargs)
-    return created_at + delta - dt.datetime.now()
-
-def show_invites(invites, *args, **kwargs):
-    for i in invites:
-        remaining = calc_remaining(i.created_at, seconds=i.max_age)
-        print(' ', i.inviter, i.url)
-        print(' ', i.uses, i.max_uses, remaining)
-    print(*args, **kwargs)
-
-def show_points(members, *args, **kwargs):
-    for key, value in members.items():
-        print('-> {}: {}'.format(key, value))
-    print(*args, **kwargs)
-
-def show_roles(roles, *args, **kwargs):
-    for role in roles:
-        print(' ', role.id, role.name)
-    print(*args, **kwargs)
-
-def random_game():
-    games = [ 'Amnesia', 'Outlast', 'Resident Evil', 
-            'Little Nightmares', 'Silent Hill' ]
-    return discord.Game(name=random.choice(games))
-
-class ServerState:
-
-    def __init__(self, server: discord.Server):
-        self.id = server.id
-        self.members = server.member_count
-
-        self.invites = {}
-        self.runaway = {}
-        self.points = {}
-        self.role_points = {}
-
-    def track_invites(self, invites):
-        self.invites = { x.id: x for x in invites }
-        return self.invites
-
-    # Get member current points from database
-    # def member_points(self,):
-    def base_points(self, role: discord.Role):
-        return self.role_points.get(role.id, -1)
-
-    # Role update, update user points which has this role
-    def set_base_points(self, role: discord.Role, points):
-        self.role_points[role.id] = points
-        return points
-
-    def init_points(self, members):
-
-        for member in members:
-            role = max(member.roles)
-            base = self.role_points.get(role.id, 0)
-
-            if member.id not in self.points:
-                self.points[member.id] = base
-
-    def show_points(self, member: discord.Member):
-        current = self.points[member.id]
-        print(' - {}: {}'.format(member.name, current))
-
-    def award_member(self, member, points):
-        current = self.points.get(member.id, 0) 
-        current += points
-        self.points[member.id] = current        
-        return current
-
-    def calc_points(self, invites):
-
-        result = []
-        for invite in invites:
-            before = self.invites.get(invite.id, None)
-            points = invite.uses
-            points -= before.uses if before else 0
-
-            if points > 0:
-                result.append((invite, points))
-
-        return result
-
-    def track_runaway(self, member: discord.Member):
-        self.runaway[member.id] = member
-        return member
-
-    def is_runaway(self, member: discord.Member):
-        return self.runaway.get(member.id, None)
-
-    def add_member(self, member: discord.Member) -> int:
-        if self.is_runaway(member) is None:
-            self.members += 1
-            self.points[member.id] = 0
-            return True
-        return False    
-
-class BotState:
-    
-    def __init__(self):
-        self.servers = {}
-
-    def add_server(self, server: discord.Server):
-        state = ServerState(server)
-        self.servers[server.id] = state
-        return state
-
-    def get_server(self, server: discord.Server) -> ServerState:
-        return self.servers.get(server.id, None)
 
 def main():
 
@@ -136,13 +29,13 @@ def main():
             state = bot.add_server(server)
             invites = await client.invites_from(server)
 
-            show_roles(server.role_hierarchy)
-            show_invites(invites)
+            utils.show_roles(server.role_hierarchy)
+            utils.show_invites(invites)
 
             state.track_invites(invites)
             state.init_points(server.members)
             
-        await client.change_presence(game=random_game())
+        await client.change_presence(game=utils.random_game())
 
     @client.event
     async def on_message(message: discord.Message):
@@ -230,7 +123,7 @@ def main():
 
         # Track new invites
         state.track_invites(invites)
-        show_invites(invites)
+        utils.show_invites(invites)
 
         for invite in invites:
             state.show_points(invite.inviter)
