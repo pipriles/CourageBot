@@ -40,6 +40,7 @@ def recover_rick():
         cl = db['states']
         st = cl.find_one()
         bot = pickle.loads(st['bot'])
+        print('Bot state recovered!')
     except:
         bot = None
 
@@ -50,6 +51,7 @@ def pickle_rick(state):
     cl = db['states']
     st = pickle.dumps(state)
     cl.update_one({}, {'$set': { 'bot': Binary(st) }}, upsert=True)
+    print('Bot state stored!')
 
 # def to_dict(bot_state):
 #	st = vars(bot_state)
@@ -213,16 +215,17 @@ def main():
                     pass
         print()
 
+    def kill_handler():
+        pickle_rick(bot)
+
+
+    signal.signal(signal.SIGINT, kill_handler)
+    signal.signal(signal.SIGTERM, kill_handler)
+
     try:
         client.run(TOKEN)
     finally:
         pickle_rick(bot)
-
-    def kill_handler():
-        pickle_rick(bot)
-
-    signal.signal(signal.SIGINT, kill_handler)
-    signal.signal(signal.SIGTERM, kill_handler)
 
 if __name__ == '__main__':
     main()
