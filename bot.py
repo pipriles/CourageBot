@@ -13,6 +13,8 @@ import state
 from bson.binary import Binary
 import pickle
 
+import signal
+
 # Restore old state with pickle
 # Check for user has permission to set role points
 # Check race condition
@@ -91,6 +93,11 @@ def main():
             await client.send_message(channel, 'Hello!')
             return
 
+        if text.startswith('!backup'):
+            pickle_rick(bot)
+            await client.send_message(channel, 'Bot state saved!')
+            return
+
         # Commands for server
         if message.server is None:
             return
@@ -111,6 +118,13 @@ def main():
         match = re.match(r'!role (\d+) (\d+)', text)
         if match:
             position, points = map(int, match.groups())
+            author_role = max(message.author.roles)
+
+            if author_role != server.role_hierarchy[0]:
+                print(message.author.name, 'is not an admin')
+                await client.send_message(
+                        channel, 'You are not an admin')
+                return
 
             role = server.role_hierarchy[position]
             state.set_base_points(role, points)
@@ -203,6 +217,12 @@ def main():
         client.run(TOKEN)
     finally:
         pickle_rick(bot)
+
+    def kill_handler():
+        pickle_rick(bot)
+
+    signal.signal(signal.SIGINT, kill_handler)
+    signal.signal(signal.SIGTERM, kill_handler)
 
 if __name__ == '__main__':
     main()
