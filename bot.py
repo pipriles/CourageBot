@@ -48,11 +48,14 @@ def recover_rick():
     return bot
 
 def pickle_rick(state):
-    db = connect_to_db()
-    cl = db['states']
-    st = pickle.dumps(state)
-    cl.update_one({}, {'$set': { 'bot': Binary(st) }}, upsert=True)
-    print('Bot state stored!')
+    try:
+        db = connect_to_db()
+        cl = db['states']
+        st = pickle.dumps(state)
+        cl.update_one({}, {'$set': { 'bot': Binary(st) }}, upsert=True)
+        print('Bot state stored!')
+    except:
+        print('There was a problem with the database!')
 
 # def to_dict(bot_state):
 #	st = vars(bot_state)
