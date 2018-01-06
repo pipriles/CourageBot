@@ -14,6 +14,7 @@ from bson.binary import Binary
 import pickle
 
 import signal
+import sys
 
 # Restore old state with pickle
 # Check for user has permission to set role points
@@ -218,9 +219,10 @@ def main():
     def dont_kill_me_so_fast(signum, frame):
         print('That hurts!')
         pickle_rick(bot)
+        sys.exit(0)
 
-    signal.signal(signal.SIGINT, kill_handler)
-    signal.signal(signal.SIGTERM, kill_handler)
+    signal.signal(signal.SIGINT, dont_kill_me_so_fast)
+    signal.signal(signal.SIGTERM, dont_kill_me_so_fast)
 
     try:
         client.run(TOKEN)
