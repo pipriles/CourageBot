@@ -215,9 +215,9 @@ def main():
                     pass
         print()
 
-    def kill_handler():
+    def dont_kill_me_so_fast(signum, frame):
+        print('That hurts!')
         pickle_rick(bot)
-
 
     signal.signal(signal.SIGINT, kill_handler)
     signal.signal(signal.SIGTERM, kill_handler)
