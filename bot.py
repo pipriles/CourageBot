@@ -8,16 +8,60 @@ import os
 import pymongo as pm
 
 import utils
+import state
+
+from bson.binary import Binary
+import pickle
 
 # Restore old state with pickle
 # Check for user has permission to set role points
+# Check race condition
 
-TOKEN = os.environ.get('TOKEN', None)
+TOKEN = os.environ.get('TOKEN')
+
+def from_uri():
+    pattern = r'mongodb\:\/\/(\w+)\:(\w+)\@([^\:]+)\:(\d+)\/(\w+)'
+    regex = re.compile(pattern)
+    match = regex.match(os.environ.get('DB_URI'))
+    return match.groups()
+
+def connect_to_db():
+    user, secret, host, port, db_name = from_uri()
+    client = pm.MongoClient(host, int(port))
+    db = client[db_name]
+    db.authenticate(user, secret)
+    return db
+
+def recover_rick():
+    try:
+        db = connect_to_db()
+        cl = db['states']
+        st = cl.find_one()
+        bot = pickle.loads(st['bot'])
+    except:
+        bot = None
+
+    return bot
+
+def pickle_rick(state):
+    db = connect_to_db()
+    cl = db['states']
+    st = pickle.dumps(state)
+    cl.update_one({}, {'$set': { 'bot': Binary(st) }}, upsert=True)
+
+# def to_dict(bot_state):
+#	st = vars(bot_state)
+#	servers = st['servers']
+#	servers = { k: pickle.(v) for k, v in servers.items() }
 
 def main():
 
     client = discord.Client()
-    bot = BotState()
+
+    bot = recover_rick()
+
+    if bot is None: 
+        bot = state.BotState()
 
     @client.event
     async def on_ready():
@@ -34,7 +78,7 @@ def main():
 
             state.track_invites(invites)
             state.init_points(server.members)
-            
+
         await client.change_presence(game=utils.random_game())
 
     @client.event
@@ -134,7 +178,7 @@ def main():
             await client.add_roles(member, roles[1]) 
             await client.send_message(
                     server.default_channel, 'Welcome my master!' )
-
+    
     @client.event
     async def on_server_update(before, after):
         print('Something happened!')
@@ -155,7 +199,10 @@ def main():
                     pass
         print()
 
-    client.run(TOKEN)
+    try:
+        client.run(TOKEN)
+    finally:
+        pickle_rick(bot)
 
 if __name__ == '__main__':
     main()

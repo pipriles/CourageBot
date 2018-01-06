@@ -3,10 +3,10 @@ import discord
 
 class ServerState:
 
-    def __init__(self, server: discord.Server, invites=None,
+    def __init__(self, server=None, invites=None,
             runaway=None, points=None, role_points=None):
-        self.id = server.id
-        self.members = server.member_count
+        self.id = server.id if server else None
+        self.members = server.member_count if server else None
 
         self.invites = {} if invites is None else invites
         self.runaway = {} if runaway is None else runaway
@@ -79,8 +79,13 @@ class BotState:
         self.servers = {}
 
     def add_server(self, server: discord.Server):
-        state = ServerState(server)
-        self.servers[server.id] = state
+
+        if server.id in self.servers:
+            state = self.servers[server.id]
+        else:
+            state = ServerState(server)
+            self.servers[server.id] = state
+
         return state
 
     def get_server(self, server: discord.Server) -> ServerState:

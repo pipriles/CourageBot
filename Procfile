@@ -1,1 +1,1 @@
-worker: python TrackerBot.py
+worker: python bot.py
