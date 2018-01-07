@@ -88,7 +88,8 @@ def main():
             state.track_invites(invites)
             state.init_points(server.members)
 
-        await client.change_presence(game=utils.random_game())
+        playing = discord.Game(name='To the moon')
+        await client.change_presence(game=playing)
 
     @client.event
     async def on_message(message: discord.Message):
