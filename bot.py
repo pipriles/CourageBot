@@ -19,6 +19,7 @@ import sys
 # Restore old state with pickle
 # Check for user has permission to set role points
 # Check race condition
+# Fix regex
 
 TOKEN = os.environ.get('TOKEN')
 
