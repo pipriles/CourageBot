@@ -18,6 +18,7 @@ import sys
 
 # [x] Restore old state with pickle
 # [x] Check for user has permission to set role points
+# [x] Fix regex
 # [x] Handle client join server
 # [x] !invites command
 # [ ] Add proper restore and save
@@ -154,13 +155,14 @@ def main():
                 reply += "You don't have to invite more people!"
 
             if points < state.base_points(trole):
-                reply += '\nBut you have only **{}** points.'.format(points)
+                reply += '\nBut you have only **{}** points.'
                 reply += " That's suspicious..."
+                reply  = reply.format(points)
 
             await client.send_message(author, reply)
             return
 
-        match = re.match(r'!role (\d+) (\d+)', text)
+        match = re.match(r'!role (\d+) (-?\d+)', text)
         if match:
             position, points = map(int, match.groups())
             author_role = message.author.top_role
