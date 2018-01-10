@@ -83,8 +83,7 @@ def main():
             await init_server(server)
             
         # playing = discord.Game(name='To the moon')
-        playing = discord.Game(name=utils.random_game())
-        await client.change_presence(game=playing)
+        await client.change_presence(game=utils.random_game())
 
     async def init_server(server: discord.Server):
 
