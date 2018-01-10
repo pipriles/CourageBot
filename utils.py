@@ -24,4 +24,6 @@ def random_game():
             'Little Nightmares', 'Silent Hill' ]
     return discord.Game(name=random.choice(games))
 
+def find_by_id(items, e):
+    return next((x for x in items if getattr(x, 'id', None) == e), None)
 

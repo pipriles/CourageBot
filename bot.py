@@ -16,10 +16,11 @@ import pickle
 import signal
 import sys
 
-# Restore old state with pickle
-# Check for user has permission to set role points
-# Check race condition
-# Fix regex
+# [x] Restore old state with pickle
+# [x] Check for user has permission to set role points
+# [x] Handle client join server
+# [x] !invites command
+# [ ] Add proper restore and save
 
 TOKEN = os.environ.get('TOKEN')
 
@@ -66,7 +67,6 @@ def pickle_rick(state):
 def main():
 
     client = discord.Client()
-
     bot = recover_rick()
 
     if bot is None: 
@@ -79,17 +79,21 @@ def main():
         print('--------------------')
 
         for server in client.servers:
-            state = bot.add_server(server)
-            invites = await client.invites_from(server)
-
-            utils.show_roles(server.role_hierarchy)
-            utils.show_invites(invites)
-
-            state.track_invites(invites)
-            state.init_points(server.members)
-
+            await init_server(server)
+            
         playing = discord.Game(name='To the moon')
         await client.change_presence(game=playing)
+
+    async def init_server(server: discord.Server):
+
+        state = bot.add_server(server)
+        invites = await client.invites_from(server)
+
+        utils.show_roles(server.role_hierarchy)
+        utils.show_invites(invites)
+
+        state.track_invites(invites)
+        state.init_points(server.members)
 
     @client.event
     async def on_message(message: discord.Message):
@@ -98,10 +102,11 @@ def main():
         channel: discord.Channel = message.channel
 
         if text.startswith('!test'):
-            await client.send_message(channel, 'Hello!')
+            reply = 'Hello! {}'.format(message.author.name)
+            await client.send_message(channel, reply)
             return
 
-        if text.startswith('!backup'):
+        if text.startswith('!szechuan'):
             pickle_rick(bot)
             await client.send_message(channel, 'Bot state saved!')
             return
@@ -123,10 +128,42 @@ def main():
             await client.send_message(channel, '\n'.join(rows))
             return
 
+        if text.startswith('!invites') \
+        or text.startswith('!rank'):
+
+            author = message.author
+
+            trole = author.top_role
+            reply  = 'You are currently a **{}** '.format(trole)
+
+            points = state.points.get(author.id)
+            missing = state.missing_roles(points)
+
+            if missing:
+                nearest = min(missing, key=missing.get)
+                nrole = utils.find_by_id(server.role_hierarchy, nearest)
+                reqs = missing.get(nearest)
+                diff = reqs - points
+
+                reply += 'and are **{}** / **{}** '.format(points, reqs)
+                reply += 'to reach **{}**.\n'.format(nrole.name)
+                reply += 'You will need **{}** invites '.format(diff)
+                reply += 'more to advance to the next level.'
+
+            else:
+                reply += "You don't have to invite more people!"
+
+            if points < state.base_points(trole):
+                reply += '\nBut you have only **{}** points.'.format(points)
+                reply += " That's suspicious..."
+
+            await client.send_message(author, reply)
+            return
+
         match = re.match(r'!role (\d+) (\d+)', text)
         if match:
             position, points = map(int, match.groups())
-            author_role = max(message.author.roles)
+            author_role = message.author.top_role
 
             if author_role != server.role_hierarchy[0]:
                 print(message.author.name, 'is not an admin')
@@ -143,7 +180,31 @@ def main():
             return
 
     @client.event
+    async def on_server_join(server: discord.Server):
+
+        print('The bot has joined to {}\n'.format(server.name))
+        bot.add_server(server)
+        await init_server(server)
+        await client.send_message(server.default_channel, 'Hello!')
+
+    @client.event
+    async def on_server_remove(server: discord.Server):
+        
+        print('The bot has leaved', server.name)
+        bot.del_server(server)
+
+    @client.event
+    async def on_server_role_delete(role: discord.Role):
+
+        print('The role {} has been removed!'.format(role.name))
+        state = bot.get_server(role.server)
+        state.del_base_points(role)
+
+    @client.event
     async def on_member_remove(member: discord.Member):
+
+        if member == client.user: 
+            return
 
         print(member.name, 'has left but i will not forget it')
         server = member.server
@@ -213,10 +274,17 @@ def main():
 
         for role in server.role_hierarchy:
             base = state.base_points(role)
+
             if base != -1 and current >= base:
                 print(' {} awarded!'.format(role.name))
+
+                reply = 'Congratulations {} you are now a {}'
+                reply = reply.format(inviter.name, role.name)
                 try:
                     await client.add_roles(inviter, role)
+                    await client.send_message(
+                            server.default_channel, reply)
+
                 except discord.errors.Forbidden:
                     pass
         print()
@@ -232,7 +300,7 @@ def main():
     try:
         client.run(TOKEN)
     finally:
-        pickle_rick(bot)
+        pass
 
 if __name__ == '__main__':
     main()

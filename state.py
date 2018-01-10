@@ -27,6 +27,16 @@ class ServerState:
         self.role_points[role.id] = points
         return points
 
+    def del_base_points(self, role: discord.Role):
+
+        if role.id in self.role_points:
+            del self.role_points[role.id]
+
+    def missing_roles(self, points):
+
+        roles = self.role_points.items()
+        return { k: v for k, v in roles if v - points > 0 }
+
     def init_points(self, members):
 
         for member in members:
@@ -87,6 +97,11 @@ class BotState:
             self.servers[server.id] = state
 
         return state
+
+    def del_server(self, server: discord.Server):
+
+        if server.id in self.servers:
+            del self.servers[server.id]
 
     def get_server(self, server: discord.Server) -> ServerState:
         return self.servers.get(server.id, None)
