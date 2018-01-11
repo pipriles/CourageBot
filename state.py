@@ -40,7 +40,7 @@ class ServerState:
     def init_points(self, members):
 
         for member in members:
-            role = max(member.roles)
+            role = member.top_role
             base = self.role_points.get(role.id, 0)
 
             if member.id not in self.points:

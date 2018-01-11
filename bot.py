@@ -82,8 +82,8 @@ def main():
         for server in client.servers:
             await init_server(server)
             
-        # playing = discord.Game(name='To the moon')
-        await client.change_presence(game=utils.random_game())
+        playing = discord.Game(name='To the moon')
+        await client.change_presence(game=playing)
 
     async def init_server(server: discord.Server):
 
@@ -284,12 +284,23 @@ def main():
                 reply = reply.format(inviter.name, role.name)
                 try:
                     await client.add_roles(inviter, role)
-                    await client.send_message(
-                            server.default_channel, reply)
+                    await send_top_channel(server, reply)
 
-                except discord.errors.Forbidden:
-                    pass
+                except discord.errors.Forbidden: pass
+                except discord.errors.NotFound: pass
         print()
+
+    async def send_top_channel(server: discord.Server, msg):
+
+        try:
+            for channel in server.channels:
+                # Find channel with permissions to write
+                if channel.permissions_for(server.me).send_message:
+                    await client.send_message(channel, msg)
+                    break
+
+        except Exception as e:
+            print(e)
 
     def dont_kill_me_so_fast(signum, frame):
         print('That hurts!')
